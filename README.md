@@ -1,94 +1,87 @@
-# UCB-MFE-python-preprogram-2026-winter
+This folder contains the HW2 submission: a cleaning/validation notebook, a
+parameterized stock-risk report, a Papermill batch runner, and shared functions in
+`analysis.py`.
 
-## Class Schedule
+## Local setup and run order
 
-Fall 2026: October 5-November 5. All times are Pacific Time (PT).
+Use Python 3.12 or later. Download the course SQLite database, keep the original
+elsewhere, and place a working copy at `data/data.db`. It must contain `ohlc_hw`,
+`ohlc`, and `market_caps`. Do not commit the database or virtual environment.
 
-| Day      | Date       | Time        | Lecturer | Topics |
-| -------- | ---------- | ----------- | -------- | ------ |
-| Monday   | 10/5/2026  | 9am - 12pm  | Aneesh   | Basics: Python syntax, Git, CLI, AI tools |
-| Thursday | 10/8/2026  | 9am - 12pm  | Yang     | [Data Analysis I & II: pandas, portfolio analysis](Lectures/Lecture%202/readme.md) |
-| Monday   | 10/12/2026 | 9am - 12pm  | Aneesh   | [LLM Classification & Agent Evaluation](Lectures/Lecture%203/readme.md) |
-| Thursday | 10/15/2026 | 9am - 12pm  | Yang     | [Data Analysis III: visualization/cleaning, SQL, risk reports](Lectures/Lecture%204/readme.md) |
-| Monday   | 10/19/2026 | 9am - 12pm  | Aneesh   | [Advanced Python I: Python, memory and systems](Lectures/Lecture%205/README.md) |
-| Thursday | 10/22/2026 | 9am - 12pm  | Aneesh   | [Advanced Python II: algorithms, async and LLM memory](Lectures/Lecture%206/README.md) |
-| Monday   | 10/26/2026 | 9am - 12pm  | Yang     | [Modeling I: sklearn, financial features, time-aware evaluation](Lectures/Lecture%207/readme.md) |
-| Thursday | 10/29/2026 | 9am - 12pm  | Yang     | [Modeling II: backtesting and research workflow](Lectures/Lecture%208/readme.md) |
-| Monday   | 11/2/2026  | 9am - 12pm  | Aneesh   | [Productionization: testing, APIs, Docker, CI](Lectures/Lecture%209/README.md) |
-| Thursday | 11/5/2026  | 9am - 12pm  | Yang     | Advanced topic: on demand |
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+python -m pip install -r requirements.txt
+python -m ipykernel install --user --name hw2 --display-name "Python (HW2)"
+```
 
-## Homework
-- one homework per module
-- Homework is due two weeks (14 calendar days) after the module's last lecture.
-- submission via github pull request (see Lecture 1)
-- Please assign PRs to Kevin Ramlal (`kevinramlal`) and Raghuram Kowdeed (`raghuramkowdeed`)
+Run `01_data_cleaning.ipynb` from top to bottom with the HW2 kernel. It diagnoses,
+cleans, validates, and saves `ohlc_hw_cleaned`, quarantine and quality tables, plus
+audit files under `reports/YYYY-MM-DD/`. The source tables are not modified.
 
-| Module | Last Lecture | Homework Due |
-| ------ | ------------ | ------------ |
-| [Basic Python (HW 1)](Lectures/Lecture%201/hw1.md) | 10/5/2026 | 10/19/2026, 11:59 p.m. Pacific (PDT) |
-| Data Analysis | 10/15/2026 | 10/29/2026 |
-| [Advanced Python (HW 3)](Homeworks/HW3/README.md) | 10/22/2026 | 11/5/2026, 11:59 p.m. Pacific (PST) |
-| [Modeling (HW4)](Lectures/Lecture%208/hw4.md) | 10/29/2026 | 11/12/2026 |
-| [Productionization (HW5)](Homeworks/HW5/hw_5.md) | 11/2/2026 | 11/16/2026, 11:59 p.m. Pacific (PST) |
-| Advanced Topics | 11/5/2026 | 11/19/2026 |
+Run `02_stock_report_template.ipynb` directly or execute all stocks with:
 
-HW 1 starter files and the submission folder layout are in [Homeworks/HW1](Homeworks/HW1/README.md).
+```bash
+python 03_run_all_stocks.py --db-path data/data.db --kernel-name hw2
+```
 
-HW 3 instructions, starter code, and automated checks are in [Homeworks/HW3](Homeworks/HW3/README.md).
+The batch writes successful notebooks, `portfolio_summary.csv`,
+`risk_return_scatter.png`, and `failed_stocks.txt`. No API key or network data is
+required.
 
-HW5 instructions and the API/container starter are in [Homeworks/HW5](Homeworks/HW5/README.md).
+## Data decisions
 
-## Goal
-- Level up your coding skills
-- Help you to succeed in an entry-level / internship position of data scientist / quant developer
+Ticker labels are stripped of HTML, whitespace, a leading `$`, and case differences;
+the original label is retained. Exact duplicates are removed, while conflicting
+`(ticker, ts)` rows are quarantined. Missing sessions are checked against each
+ticker's dates in the supplied `ohlc` table and are reported rather than fabricated.
 
-## How to get the most of this course
-- Attend live sessions and ask a lot of questions
-- Review class materials and do homework right after the class, as learning curve is pretty steep.
+Missing raw prices may be forward-filled only from an earlier row of the same ticker,
+then all price and OHLC bounds are rechecked. Missing volume becomes zero only with
+an audit flag. Adjusted close is rebuilt only from a valid same-ticker, same-date
+factor from `ohlc`; factors are never carried across dates. Unresolved rows are
+quarantined. Extreme returns are retained as review flags rather than automatically
+deleted. Synthetic checks cover missing dates, invalid values, duplicates, conflicts,
+leading gaps, missing factors, and both return tails.
 
-## Operating System
-- Most of the class materials are prepared with macOS 
-- All class materials should work seamlessly with both Windows and Linux systems
+The final data must have unique ticker/date keys, positive finite prices, nonnegative
+finite volume, valid OHLC bounds, and ISO dates. The notebook also verifies its saved
+output and confirms that `ohlc_hw` and `ohlc` remain unchanged.
 
-## Extra Materials
-- Relevant materials will be [linked](...) inline.
-- It's highly recommended, but not a must to go over the linked materials. The course is self-contained.
+## Report interpretation
 
-## Grading
-- Pass / No-Pass
-- In order to pass, students needs to complete all homeworks on-time.
-- Do your homework as soon as possible.
+Reports use adjusted close and daily log returns. Annualization uses 252 trading
+days; rolling volatility uses 20 returns; the moving average uses 50 prices. Sharpe
+uses a 2% annual risk-free rate. Total return uses the first and last observed prices,
+and maximum drawdown is the worst decline from an observed running peak.
 
-## Late Policy
-- Each student will be given **three** free late days, with each late day being equivalent to 24 hours of lateness. 
-- Assignments are considered either on time or late by whole days; for instance, an assignment is either on time, 1 day late, 2 days late, etc. 
-- Due to the leniency of this policy, no extensions will be granted for assignments under any circumstances. 
-- No assignment will be accepted if it is submitted more than 3 days after its due date.
+Missing sessions remain `NaN`, so no zero return or invented price is introduced.
+Each report shows requested and actual coverage. Tickers with shorter histories are
+not extrapolated and should be compared with that limitation in mind. CSV metrics are
+stored as fractions, with percentage formatting used only for display.
 
-## Communication
-- Most of the communication and announcement will be sent via Slack.
-- Most of the questions should be asked & answered in the group channel.
-- Yang, Aneesh & GSIs will routinely check the channel to make sure all questions are answered.
+Each ticker is an independent Papermill job. Failures are logged and do not stop the
+batch. Only successful current-run notebooks enter the portfolio summary; if all
+reports fail, the CSV contains headers only and no scatter plot is produced.
 
-## Instructors
-- [Yang Guo](https://www.linkedin.com/in/yang-guo-19494ba/)
-- [Aneesh Sachdeva](https://www.linkedin.com/in/aneeshsachdeva/)
+## Current run
 
-## GSIs
-- Raghuram Kowdeed
-- [Kevin Ramlal](https://www.linkedin.com/in/kevinramlal/)
+The supplied database contained 397,711 rows, 150 original labels, and 30 normalized
+tickers covering 1962-01-02 through 2024-12-06. Cleaning removed 29,460 exact
+duplicates, rebuilt 28,791 adjusted closes, retained 368,246 valid rows, and
+quarantined five invalid rows. All retained adjusted closes match their verified
+same-date reference factors.
 
+The batch completed on 2026-11-10 with 30/30 reports succeeding for the common
+2024-06-01 to 2024-11-30 request window. AAPL ends on 2024-10-18, so its sample uses
+97 observations and reports a 21.25% total return, 1.909 Sharpe ratio, and -11.75%
+maximum drawdown without extrapolation.
 
+## Sample outputs
 
-## Running the notebooks
+`reports/2026-11-10/` includes executed AAPL, IBM, and NVDA reports, the 30-stock
+summary, scatter plot, empty failure log, audit outputs, and `run_manifest.json`.
+The database and remaining generated reports are excluded.
 
-- From the project root, run `uv sync --locked` and select the project's `.venv` Python interpreter as your notebook kernel.
-- Run each notebook with its lecture folder as the working directory. The reorganized data-analysis notebooks also support the repository root and their reference folders.
-- Data analysis has two covered notebooks from October 8 (Lecture 2) and four on October 15 (Lecture 4). The deferred visualization/cleaning module opens Lecture 4, followed by SQL, a risk report, and automated reporting. Lecture 4's guide plans 150 minutes including a ten-minute break. Each notebook has a continuous lesson with visible worked examples and exercises at the end; Lecture 4 retains optional references.
-- Lecture 4 generates seeded synthetic stock histories inside its opening cleaning notebook. Lecture 2's optional Jupyter tutorial includes a historical sample; default runs work without an API key.
-- Worked examples use different inputs or questions from the final exercises. Exercise prompts, starter cells, and feedback stay together at the end; the lesson runs independently of student answers.
-- Lecture 4's default report batch deliberately includes one invalid ticker: three reports succeed, one failure is recorded, and the comparison uses successful outputs only.
-- Lecture 4 requires the bCourses database at `Lectures/Lecture 4/data/data.db`.
-- Lecture 6's October 22 prepared notebook uses only the standard library, simulated I/O and no external services; its cell outputs are cleared for live teaching. The older reference notebook's HTTP examples require internet access, and its multiprocessing example uses the adjacent `lecture6_workers.py` module.
-- Lectures 7 and 8 use real equity data from `Lectures/modeling/data/equities_class.duckdb` (30 selected stocks, under 5 MiB). HW4 uses `equities_top2000.duckdb` (3,849 stocks across quarterly top-2,000 lists, January 2000–September 2026, about 315 MiB). Download both from bCourses; see the [modeling data guide](Lectures/modeling/README.md). There is no synthetic fallback.
-- Database files, local credentials, and generated reports are not tracked.
+Original assignment:
+<https://github.com/yang-guo/UCB-MFE-python-preprogram-2026-winter/blob/main/Lectures/Lecture%202/hw2.md>
