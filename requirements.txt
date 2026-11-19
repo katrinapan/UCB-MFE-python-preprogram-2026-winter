@@ -1,0 +1,15 @@
+# Service and homework tools.
+fastapi==0.162.0
+uvicorn==0.54.0
+pydantic==2.14.2
+httpx2==2.16.2
+pytest==9.2.0
+ruff==0.17.3
+
+# Exact versions from the existing HW4 training environment.
+numpy==2.0.2
+pandas==2.3.3
+scikit-learn==1.6.1
+scipy==1.13.1
+joblib==1.5.3
+threadpoolctl==3.7.0

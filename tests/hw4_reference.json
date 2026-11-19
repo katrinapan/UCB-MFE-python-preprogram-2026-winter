@@ -1,0 +1,9 @@
+{
+  "symbol": "AAM",
+  "signal_date": "2016-03-31",
+  "entry_date": "2016-04-01",
+  "exit_date": "2016-06-30",
+  "training_rows": 6812,
+  "prediction": 0.0307423007789469,
+  "model_version": "hw4-ridge-final-2016-04-01-v1"
+}

@@ -1,0 +1,50 @@
+Container verification on 2026-11-19 (Asia/Shanghai)
+Docker Engine in a Lima Linux arm64 VM on an Apple M5 Pro. curl ran on the macOS host.
+
+$ docker version --format "{{.Server.Version}}"
+29.10.0
+
+$ docker image inspect --format "{{.Id}}" mfe-hw5:local
+sha256:ca056cd6ede8f99c0bc2ac4d7a599d67e564d1c5fe89f9e7ac134f450c5800c1
+
+$ docker run -d --rm --name mfe-hw5 -p 127.0.0.1:8000:8000 mfe-hw5:local
+25fbce29d7ae1e4e50f38bce17adff97c153959f25b4b0ea3a4a4350c0f8f169
+
+$ curl -i http://127.0.0.1:8000/predict -H 'Content-Type: application/json' --data-binary @example_request.json
+HTTP/1.1 200 OK
+date: Thu, 19 Nov 2026 13:50:58 GMT
+server: uvicorn
+content-length: 81
+content-type: application/json
+
+{"prediction":0.0307423007789469,"model_version":"hw4-ridge-final-2016-04-01-v1"}
+
+$ curl -i http://127.0.0.1:8000/predict -H 'Content-Type: application/json' --data-binary @example_invalid_request.json
+HTTP/1.1 422 Unprocessable Entity
+date: Thu, 19 Nov 2026 13:50:58 GMT
+server: uvicorn
+content-length: 94
+content-type: application/json
+
+{"detail":[{"loc":["body","r21"],"msg":"Input should be a valid number","type":"float_type"}]}
+
+$ docker stop mfe-hw5
+mfe-hw5
+
+$ docker run -d --rm --name mfe-hw5 -p 127.0.0.1:8000:8000 mfe-hw5:local
+3455a1a2a5168eafe3a42abff8d96da00d149e3bf79520507b79d6c9af063f4c
+Both containers used sha256:ca056cd6ede8f99c0bc2ac4d7a599d67e564d1c5fe89f9e7ac134f450c5800c1
+
+$ curl -i http://127.0.0.1:8000/predict -H 'Content-Type: application/json' --data-binary @example_request.json
+HTTP/1.1 200 OK
+date: Thu, 19 Nov 2026 13:51:00 GMT
+server: uvicorn
+content-length: 81
+content-type: application/json
+
+{"prediction":0.0307423007789469,"model_version":"hw4-ridge-final-2016-04-01-v1"}
+
+Verified HTTP 200, HTTP 422, and identical valid predictions after restart.
+
+$ docker stop mfe-hw5
+mfe-hw5

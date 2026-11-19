@@ -1,0 +1,21 @@
+Local checks on 2026-11-19 (Asia/Shanghai)
+Hardware: Apple M5 Pro, 24 GiB RAM, Apple Silicon (arm64)
+OS: macOS 27.0.1
+Latency: 5 warm-up requests, then 30 sequential successful in-process TestClient requests.
+Timing: wall-clock perf_counter around each request, median and nearest-rank p95.
+The timing excludes startup and real network I/O.
+
+$ python --version
+Python 3.12.16
+$ make lint test
+python -m ruff check .
+All checks passed!
+python -m ruff format --check .
+6 files already formatted
+python -m pytest -q
+..................                                                       [100%]
+18 passed in 1.20s
+$ python -m pytest -q -s tests/test_app.py::test_predict_performance
+TestClient, n=30: median=1.395 ms, p95=1.730 ms
+.
+1 passed in 0.70s
